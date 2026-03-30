@@ -6,6 +6,7 @@
         Height="820" Width="540"
         MinHeight="500" MinWidth="420"
         WindowStartupLocation="CenterScreen"
+        Icon="/Assets/app.ico"
         Background="{StaticResource BackgroundBrush}">
 
     <Window.Resources>

@@ -23,6 +23,7 @@ obj/
 
 # Publish output
 publish/
+out/
 
 # OS files
 Thumbs.db

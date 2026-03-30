@@ -1,0 +1,18 @@
+# Normalize line endings
+* text=auto
+
+# Explicit text files
+*.cs text diff=csharp
+*.xaml text
+*.csproj text
+*.slnx text
+*.json text
+*.md text
+*.yml text
+
+# Binary files
+*.exe binary
+*.dll binary
+*.png binary
+*.jpg binary
+*.ico binary

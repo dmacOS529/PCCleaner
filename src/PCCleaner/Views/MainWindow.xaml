@@ -1,0 +1,181 @@
+<Window x:Class="PCCleaner.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:PCCleaner.Views.Converters"
+        Title="PC Cleaner"
+        Height="820" Width="540"
+        MinHeight="500" MinWidth="420"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Window.Resources>
+        <converters:FileSizeConverter x:Key="FileSizeConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibility"/>
+    </Window.Resources>
+
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" Padding="24,20">
+            <StackPanel>
+                <TextBlock Text="PC Cleaner"
+                           FontSize="24" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="Health Check"
+                           FontSize="13"
+                           Foreground="{StaticResource SubtextBrush}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+            <ItemsControl ItemsSource="{Binding Categories}" Margin="16,8,16,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Margin="0,8"
+                                Padding="16,12">
+                            <StackPanel>
+                                <!-- Category Header -->
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Margin="0,0,0,10"/>
+
+                                <!-- Options -->
+                                <ItemsControl ItemsSource="{Binding Options}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,4,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <CheckBox Grid.Column="0"
+                                                              Content="{Binding DisplayName}"
+                                                              IsChecked="{Binding IsSelected}"
+                                                              VerticalAlignment="Center"/>
+
+                                                    <!-- Scan results -->
+                                                    <TextBlock Grid.Column="1"
+                                                               Visibility="{Binding ScanResult, Converter={StaticResource NullToVisibility}}"
+                                                               VerticalAlignment="Center"
+                                                               Margin="12,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource SubtextBrush}"/>
+                                                                <Setter Property="FontSize" Value="12"/>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                        <Run Text="{Binding ScanResult.FileCount, StringFormat='{}{0:N0} files', Mode=OneWay}"/>
+                                                    </TextBlock>
+
+                                                    <TextBlock Grid.Column="2"
+                                                               Visibility="{Binding ScanResult, Converter={StaticResource NullToVisibility}}"
+                                                               Text="{Binding ScanResult.TotalBytes, Converter={StaticResource FileSizeConverter}, Mode=OneWay}"
+                                                               VerticalAlignment="Center"
+                                                               MinWidth="70"
+                                                               TextAlignment="Right">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource YellowBrush}"/>
+                                                                <Setter Property="FontSize" Value="12"/>
+                                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
+
+                                                <!-- Description -->
+                                                <TextBlock Text="{Binding Description}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource OverlayBrush}"
+                                                           Margin="28,2,0,0"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Footer / Action Bar -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" Padding="20,16">
+            <StackPanel>
+                <!-- Completion Banner -->
+                <Border Background="#2A3A2A"
+                        CornerRadius="6"
+                        Padding="16,12"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding IsComplete, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SummaryText}"
+                                   FontSize="18" FontWeight="Bold"
+                                   Foreground="{StaticResource GreenBrush}"/>
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource SubtextBrush}"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Scan Summary (after scan, before clean) -->
+                <Border Background="#3A3520"
+                        CornerRadius="6"
+                        Padding="16,12"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding HasScanResults, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding SummaryText}"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource YellowBrush}"/>
+                </Border>
+
+                <!-- Progress Bar -->
+                <ProgressBar Value="{Binding ProgressPercent}"
+                             Maximum="100"
+                             Margin="0,0,0,8"
+                             Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}"/>
+                <ProgressBar Value="{Binding ProgressPercent}"
+                             Maximum="100"
+                             Margin="0,0,0,8"
+                             Foreground="{StaticResource GreenBrush}"
+                             Visibility="{Binding IsCleaning, Converter={StaticResource BoolToVisibility}}"/>
+
+                <!-- Status (only during scan/clean operations) -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           FontSize="12"
+                           Foreground="{StaticResource SubtextBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,12"
+                           Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+
+                <!-- Buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Scan"
+                            Style="{StaticResource SecondaryButton}"
+                            Command="{Binding ScanCommand}"
+                            Margin="0,0,10,0"/>
+                    <Button Content="Clean"
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding CleanCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

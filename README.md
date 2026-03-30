@@ -2,6 +2,10 @@
 
 A lightweight Windows desktop application for cleaning browser data and freeing disk space. Built as a simple, no-bloat alternative to other tools - focused on doing a few things well.
 
+## Screenshot
+
+![PC Cleaner](images/screenshot.jpg)
+
 ## Overview
 
 PC Cleaner performs a **Health Check** scan across two areas:

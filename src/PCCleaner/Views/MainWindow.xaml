@@ -24,7 +24,7 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" Padding="24,20">
             <StackPanel>
-                <TextBlock Text="PC Cleaner"
+                <TextBlock Text="PCCleaner"
                            FontSize="24" FontWeight="Bold"
                            Foreground="{StaticResource TextBrush}"/>
                 <TextBlock Text="Health Check"
@@ -165,16 +165,26 @@
                            Margin="0,0,0,12"
                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
 
-                <!-- Buttons -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Scan"
-                            Style="{StaticResource SecondaryButton}"
-                            Command="{Binding ScanCommand}"
-                            Margin="0,0,10,0"/>
-                    <Button Content="Clean"
-                            Style="{StaticResource PrimaryButton}"
-                            Command="{Binding CleanCommand}"/>
-                </StackPanel>
+                <!-- Buttons and Link -->
+                <Grid>
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <Hyperlink NavigateUri="https://github.com/dmacOS529/PCCleaner"
+                                   RequestNavigate="Hyperlink_RequestNavigate"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   TextDecorations="None">
+                            PCCleaner by dmacOS529
+                        </Hyperlink>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Scan"
+                                Style="{StaticResource SecondaryButton}"
+                                Command="{Binding ScanCommand}"
+                                Margin="0,0,10,0"/>
+                        <Button Content="Clean"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding CleanCommand}"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
     </Grid>

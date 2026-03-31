@@ -5,17 +5,36 @@ namespace PCCleaner.Services;
 
 public static class FileSystemHelper
 {
+#if DEBUG
+    private static readonly string LogPath = Path.Combine(
+        AppContext.BaseDirectory, "logs", "PCCleaner_debug.log");
+
+    public static void Log(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
+            File.AppendAllText(LogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+        }
+        catch { }
+    }
+#else
+    public static void Log(string message) { }
+#endif
+
     public static bool TrySafeDelete(string path)
     {
         try
         {
             if (File.Exists(path))
             {
+                File.SetAttributes(path, FileAttributes.Normal);
                 File.Delete(path);
                 return true;
             }
             if (Directory.Exists(path))
             {
+                ClearReadOnlyRecursive(path);
                 Directory.Delete(path, recursive: true);
                 return true;
             }
@@ -24,6 +43,19 @@ public static class FileSystemHelper
         catch (UnauthorizedAccessException) { }
         catch (SecurityException) { }
         return false;
+    }
+
+    private static void ClearReadOnlyRecursive(string directory)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            {
+                try { File.SetAttributes(file, FileAttributes.Normal); }
+                catch { }
+            }
+        }
+        catch { }
     }
 
     public static long GetFileSize(string path)

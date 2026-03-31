@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# Logs
+logs/
+
 # User-specific files
 *.user
 *.suo

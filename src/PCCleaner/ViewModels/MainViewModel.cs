@@ -110,27 +110,38 @@ public partial class MainViewModel : ObservableObject
         TotalSizeFound = 0;
         SummaryText = "";
 
-        var allOptions = Categories.SelectMany(c => c.Options).Where(o => o.IsSelected).ToList();
-        int completed = 0;
-
-        foreach (var option in allOptions)
+        try
         {
-            option.ScanResult = null;
-            StatusMessage = $"Scanning {option.DisplayName}...";
+            var allOptions = Categories.SelectMany(c => c.Options).Where(o => o.IsSelected).ToList();
+            int completed = 0;
 
-            var result = await ScanOptionAsync(option.Id);
-            option.ScanResult = result;
-            TotalFilesFound += result.FileCount;
-            TotalSizeFound += result.TotalBytes;
+            foreach (var option in allOptions)
+            {
+                option.ScanResult = null;
+                StatusMessage = $"Scanning {option.DisplayName}...";
 
-            completed++;
-            ProgressPercent = (int)((double)completed / allOptions.Count * 100);
+                var result = await ScanOptionAsync(option.Id);
+                option.ScanResult = result;
+                TotalFilesFound += result.FileCount;
+                TotalSizeFound += result.TotalBytes;
+
+                completed++;
+                ProgressPercent = (int)((double)completed / allOptions.Count * 100);
+            }
+
+            HasScanResults = true;
+            SummaryText = $"{TotalFilesFound:N0} files found ({FormatSize(TotalSizeFound)})";
+            StatusMessage = "Scan complete. Click Clean to remove selected items.";
         }
-
-        HasScanResults = true;
-        IsScanning = false;
-        SummaryText = $"{TotalFilesFound:N0} files found ({FormatSize(TotalSizeFound)})";
-        StatusMessage = "Scan complete. Click Clean to remove selected items.";
+        catch (Exception ex)
+        {
+            FileSystemHelper.Log($"!!! SCAN CRASHED: {ex}");
+            StatusMessage = $"Error during scan: {ex.Message}";
+        }
+        finally
+        {
+            IsScanning = false;
+        }
     }
 
     private bool CanScan() => !IsScanning && !IsCleaning;
@@ -141,48 +152,62 @@ public partial class MainViewModel : ObservableObject
         IsCleaning = true;
         ProgressPercent = 0;
 
-        var warnings = GetBrowserWarnings();
-        if (!string.IsNullOrEmpty(warnings))
+        try
         {
-            StatusMessage = warnings;
+            var warnings = GetBrowserWarnings();
+            if (!string.IsNullOrEmpty(warnings))
+            {
+                StatusMessage = warnings;
+            }
+
+            var optionsToClean = Categories
+                .SelectMany(c => c.Options)
+                .Where(o => o.IsSelected && o.ScanResult != null && (o.ScanResult.FileCount > 0 || o.Id == "disk.recyclebin"))
+                .ToList();
+
+            FileSystemHelper.Log($"=== CLEAN START: {optionsToClean.Count} options ===");
+
+            long totalFreed = 0;
+            long totalDeleted = 0;
+            long totalFailed = 0;
+            int completed = 0;
+
+            foreach (var option in optionsToClean)
+            {
+                StatusMessage = $"Cleaning {option.DisplayName}...";
+
+                var result = await CleanOptionAsync(option);
+                totalFreed += result.FreedBytes;
+                totalDeleted += result.DeletedCount;
+                totalFailed += result.FailedCount;
+
+                option.ScanResult = null;
+
+                completed++;
+                ProgressPercent = (int)((double)completed / optionsToClean.Count * 100);
+            }
+
+            HasScanResults = false;
+            IsComplete = true;
+            TotalFilesFound = 0;
+            TotalSizeFound = 0;
+            SummaryText = $"Cleaned {totalDeleted:N0} items, freed {FormatSize(totalFreed)}";
+            FileSystemHelper.Log($"=== CLEAN DONE: deleted={totalDeleted}, failed={totalFailed}, freed={FormatSize(totalFreed)} ===");
+
+            if (totalFailed > 0)
+                StatusMessage = $"Cleaned {totalDeleted:N0} files. {totalFailed:N0} skipped (in use by other apps).";
+            else
+                StatusMessage = "All done! Click Scan to run another check.";
         }
-
-        var optionsToClean = Categories
-            .SelectMany(c => c.Options)
-            .Where(o => o.IsSelected && o.ScanResult != null && (o.ScanResult.FileCount > 0 || o.Id == "disk.recyclebin"))
-            .ToList();
-
-        long totalFreed = 0;
-        long totalDeleted = 0;
-        long totalFailed = 0;
-        int completed = 0;
-
-        foreach (var option in optionsToClean)
+        catch (Exception ex)
         {
-            StatusMessage = $"Cleaning {option.DisplayName}...";
-
-            var result = await CleanOptionAsync(option);
-            totalFreed += result.FreedBytes;
-            totalDeleted += result.DeletedCount;
-            totalFailed += result.FailedCount;
-
-            option.ScanResult = null;
-
-            completed++;
-            ProgressPercent = (int)((double)completed / optionsToClean.Count * 100);
+            FileSystemHelper.Log($"!!! CLEAN CRASHED: {ex}");
+            StatusMessage = $"Error during clean: {ex.Message}";
         }
-
-        HasScanResults = false;
-        IsCleaning = false;
-        IsComplete = true;
-        TotalFilesFound = 0;
-        TotalSizeFound = 0;
-        SummaryText = $"Cleaned {totalDeleted:N0} items, freed {FormatSize(totalFreed)}";
-
-        if (totalFailed > 0)
-            StatusMessage = $"{totalFailed:N0} files could not be deleted (in use or access denied). Close apps and scan again.";
-        else
-            StatusMessage = "All done! Click Scan to run another check.";
+        finally
+        {
+            IsCleaning = false;
+        }
     }
 
     private bool CanClean() => !IsScanning && !IsCleaning && HasScanResults;

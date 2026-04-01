@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using PCCleaner.Models;
 
@@ -68,6 +69,111 @@ public class DiskCleaner
             ScanDirectory(Path.Combine(packageDir, "TempState"), result);
         }
 
+        return result;
+    });
+
+    public Task<ScanResult> ScanUpdateCacheAsync() => Task.Run(() =>
+    {
+        var result = new ScanResult();
+        var downloadPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+            "SoftwareDistribution", "Download");
+        ScanDirectory(downloadPath, result);
+        return result;
+    });
+
+    public Task<CleaningResult> CleanUpdateCacheAsync(IEnumerable<string> filePaths)
+    {
+        return CleanFilesAsync(filePaths);
+    }
+
+    public Task<ScanResult> ScanComponentCleanupAsync() => Task.Run(() =>
+    {
+        var result = new ScanResult();
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "DISM.exe",
+                Arguments = "/Online /Cleanup-Image /AnalyzeComponentStore",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            if (process == null) return result;
+
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(60_000);
+
+            // DISM reports "Component Store Cleanup Recommended : Yes"
+            if (output.Contains("Yes", StringComparison.OrdinalIgnoreCase))
+            {
+                // Try to parse the reclaimable size from "Reclaimable Packages : X"
+                // The actual size of the component store is reported but exact reclaimable
+                // bytes aren't always available, so we flag it as 1 item to indicate cleanup is available
+                result.FileCount = 1;
+
+                // Try to find "Size" line for component store size
+                foreach (var line in output.Split('\n'))
+                {
+                    if (line.Contains("Reclaimable", StringComparison.OrdinalIgnoreCase) &&
+                        line.Contains("GB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = line.Split(':');
+                        if (parts.Length > 1)
+                        {
+                            var sizeStr = parts[1].Trim().Replace("GB", "").Trim();
+                            if (double.TryParse(sizeStr, out var gb))
+                                result.TotalBytes = (long)(gb * 1024 * 1024 * 1024);
+                        }
+                    }
+                }
+
+                // Fallback — if we couldn't parse the size, estimate conservatively
+                if (result.TotalBytes == 0)
+                    result.TotalBytes = -1; // Signal "unknown size" to UI
+            }
+        }
+        catch (Exception ex)
+        {
+            FileSystemHelper.Log($"DISM AnalyzeComponentStore failed: {ex.Message}");
+        }
+        return result;
+    });
+
+    public Task<CleaningResult> CleanComponentStoreAsync() => Task.Run(() =>
+    {
+        var result = new CleaningResult();
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "DISM.exe",
+                Arguments = "/Online /Cleanup-Image /StartComponentCleanup",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            if (process == null)
+            {
+                result.FailedCount = 1;
+                return result;
+            }
+
+            process.WaitForExit(300_000); // up to 5 minutes
+
+            if (process.ExitCode == 0)
+                result.DeletedCount = 1;
+            else
+                result.FailedCount = 1;
+        }
+        catch (Exception ex)
+        {
+            FileSystemHelper.Log($"DISM StartComponentCleanup failed: {ex.Message}");
+            result.FailedCount = 1;
+        }
         return result;
     });
 

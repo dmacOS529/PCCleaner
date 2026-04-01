@@ -12,6 +12,7 @@
         <converters:FileSizeConverter x:Key="FileSizeConverter"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
         <converters:NullToVisibilityConverter x:Key="NullToVisibility"/>
+        <converters:SelectAllTextConverter x:Key="SelectAllText"/>
     </Window.Resources>
 
     <Grid Margin="0">
@@ -27,10 +28,12 @@
                 <TextBlock Text="PCCleaner"
                            FontSize="24" FontWeight="Bold"
                            Foreground="{StaticResource TextBrush}"/>
-                <TextBlock Text="Health Check"
-                           FontSize="13"
+                <TextBlock FontSize="13"
                            Foreground="{StaticResource SubtextBrush}"
-                           Margin="0,4,0,0"/>
+                           Margin="0,4,0,0">
+                    <Run Text="Health Check"/>
+                    <Run Text="{Binding LastScanTime, Mode=OneWay}" Foreground="{StaticResource OverlayBrush}"/>
+                </TextBlock>
             </StackPanel>
         </Border>
 
@@ -45,10 +48,19 @@
                                 Padding="16,12">
                             <StackPanel>
                                 <!-- Category Header -->
-                                <TextBlock Text="{Binding Name}"
-                                           FontSize="15" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentBrush}"
-                                           Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,10">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="15" FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Hyperlink Command="{Binding ToggleAllCommand}"
+                                                   Foreground="{StaticResource OverlayBrush}"
+                                                   TextDecorations="None">
+                                            <Run Text="{Binding AllSelected, Mode=OneWay, Converter={StaticResource SelectAllText}}"/>
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </Grid>
 
                                 <!-- Options -->
                                 <ItemsControl ItemsSource="{Binding Options}">

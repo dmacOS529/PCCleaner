@@ -48,6 +48,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isComplete;
 
+    [ObservableProperty]
+    private string _lastScanTime = "";
+
     public bool IsBusy => IsScanning || IsCleaning;
 
     public MainViewModel()
@@ -97,6 +100,13 @@ public partial class MainViewModel : ObservableObject
         diskCategory.Options.Add(new CleaningOption("disk.storeappcache", "Store App Cache",
             "Cached data and temp files from Microsoft Store apps (Spotify, etc.)"));
         Categories.Add(diskCategory);
+
+        var updateCategory = new CleaningCategory("Windows Update", "\uE895");
+        updateCategory.Options.Add(new CleaningOption("update.cache", "Update Download Cache",
+            "Downloaded update packages in SoftwareDistribution\\Download"));
+        updateCategory.Options.Add(new CleaningOption("update.components", "Windows Update Cleanup",
+            "Superseded update components via DISM (may take a few minutes)"));
+        Categories.Add(updateCategory);
     }
 
     [RelayCommand(CanExecute = nameof(CanScan))]
@@ -123,13 +133,15 @@ public partial class MainViewModel : ObservableObject
                 var result = await ScanOptionAsync(option.Id);
                 option.ScanResult = result;
                 TotalFilesFound += result.FileCount;
-                TotalSizeFound += result.TotalBytes;
+                if (result.TotalBytes > 0)
+                    TotalSizeFound += result.TotalBytes;
 
                 completed++;
                 ProgressPercent = (int)((double)completed / allOptions.Count * 100);
             }
 
             HasScanResults = true;
+            LastScanTime = $"Last scan: {DateTime.Now:h:mm tt}";
             SummaryText = $"{TotalFilesFound:N0} files found ({FormatSize(TotalSizeFound)})";
             StatusMessage = "Scan complete. Click Clean to remove selected items.";
         }
@@ -162,7 +174,7 @@ public partial class MainViewModel : ObservableObject
 
             var optionsToClean = Categories
                 .SelectMany(c => c.Options)
-                .Where(o => o.IsSelected && o.ScanResult != null && (o.ScanResult.FileCount > 0 || o.Id == "disk.recyclebin"))
+                .Where(o => o.IsSelected && o.ScanResult != null && (o.ScanResult.FileCount > 0 || o.Id == "disk.recyclebin" || o.Id == "update.components"))
                 .ToList();
 
             FileSystemHelper.Log($"=== CLEAN START: {optionsToClean.Count} options ===");
@@ -227,6 +239,17 @@ public partial class MainViewModel : ObservableObject
             };
         }
 
+        if (optionId.StartsWith("update."))
+        {
+            var type = optionId.Split('.', 2)[1];
+            return type switch
+            {
+                "cache" => await _diskCleaner.ScanUpdateCacheAsync(),
+                "components" => await _diskCleaner.ScanComponentCleanupAsync(),
+                _ => new ScanResult()
+            };
+        }
+
         if (optionId.StartsWith("browser."))
         {
             var type = optionId.Split('.', 2)[1];
@@ -262,6 +285,12 @@ public partial class MainViewModel : ObservableObject
     {
         if (option.Id == "disk.recyclebin")
             return await _diskCleaner.CleanRecycleBinAsync();
+
+        if (option.Id == "update.components")
+            return await _diskCleaner.CleanComponentStoreAsync();
+
+        if (option.Id == "update.cache")
+            return await _diskCleaner.CleanFilesAsync(option.ScanResult!.FilePaths);
 
         if (option.Id.StartsWith("disk."))
             return await _diskCleaner.CleanFilesAsync(option.ScanResult!.FilePaths);

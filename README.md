@@ -8,12 +8,13 @@ A lightweight Windows desktop application for cleaning browser data and freeing 
 
 ## Overview
 
-PC Cleaner performs a **Health Check** scan across two areas:
+PC Cleaner performs a **Health Check** scan across three areas:
 
 1. **Web Browsers** — Cleans cookies, browsing history, temporary files, and cache from Chrome, Edge, and Firefox
 2. **Disk Space** — Empties the Recycle Bin, clears temporary files, crash dumps, and Microsoft Store app caches
+3. **Windows Update** — Clears the update download cache and runs DISM component cleanup
 
-The app uses a two-phase workflow: **Scan** first to preview what will be cleaned (file count and size), then **Clean** to delete the selected items. Files that are locked or permission-denied are safely skipped.
+The app uses a two-phase workflow: **Scan** first to preview what will be cleaned (file count and size), then **Clean** to delete the selected items. Files that are locked or permission-denied are safely skipped. The app requests **administrator elevation** on launch (required for Windows Update cleanup and system temp files).
 
 ## Tech Stack
 
@@ -109,6 +110,27 @@ Clears cached data and temporary state from all Microsoft Store applications (Sp
 
 **Impact:** Store apps regenerate this data on next launch. Can free significant space — e.g., Spotify can cache several GB of streamed music data.
 
+### Windows Update
+
+#### Update Download Cache
+
+Deletes downloaded update packages from the Windows Update cache.
+
+| Path | Description |
+|------|------------|
+| `%WINDIR%\SoftwareDistribution\Download\*` | Cached update installers and patches |
+
+**Impact:** Windows will re-download updates if needed. Safe to clean — these are already-installed update packages. Requires admin elevation.
+
+#### Windows Update Cleanup
+
+Runs DISM component store cleanup to remove superseded update components.
+
+- **Scan:** `DISM /Online /Cleanup-Image /AnalyzeComponentStore` — checks if cleanup is recommended
+- **Clean:** `DISM /Online /Cleanup-Image /StartComponentCleanup` — removes superseded components (may take a few minutes)
+
+**Impact:** Removes old versions of updated Windows components. Cannot be undone but is safe — only removes components that have been fully superseded. Requires admin elevation.
+
 ## Error Handling
 
 - **Locked files:** If a browser or app is running, some files will be locked. The app catches `IOException` and skips these files, reporting the count at the end.
@@ -134,7 +156,7 @@ src/PCCleaner/
     ChromeCleaner.cs              — Google Chrome (extends ChromiumBaseCleaner)
     EdgeCleaner.cs                — Microsoft Edge (extends ChromiumBaseCleaner)
     FirefoxCleaner.cs             — Mozilla Firefox (different path structure)
-    DiskCleaner.cs                — Recycle Bin, temp files, crash dumps, Store app cache
+    DiskCleaner.cs                — Recycle Bin, temp files, crash dumps, Store app cache, Windows Update
     RecycleBinHelper.cs           — Shell32 P/Invoke (SHQueryRecycleBin, SHEmptyRecycleBin)
     FileSystemHelper.cs           — Safe file deletion, size calculation, error-tolerant enumeration
   ViewModels/
@@ -143,6 +165,7 @@ src/PCCleaner/
     MainWindow.xaml / .xaml.cs    — Single-window UI with dark theme
     Converters/
       FileSizeConverter.cs        — Converts bytes to human-readable (e.g., "312 MB")
+      SelectAllTextConverter.cs   — Converts bool to "Select All"/"Deselect All" text
       BoolToVisibilityConverter.cs
       NullToVisibilityConverter.cs
   Themes/

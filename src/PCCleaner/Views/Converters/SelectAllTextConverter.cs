@@ -1,16 +1,14 @@
 using System.Globalization;
 using System.Windows.Data;
-using PCCleaner.ViewModels;
 
 namespace PCCleaner.Views.Converters;
 
-public class FileSizeConverter : IValueConverter
+public class SelectAllTextConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is long bytes)
-            return bytes < 0 ? "Size TBD" : MainViewModel.FormatSize(bytes);
-        return "0 B";
+        bool allSelected = value is bool b && b;
+        return allSelected ? "Deselect All" : "Select All";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

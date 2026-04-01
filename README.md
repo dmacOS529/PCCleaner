@@ -1,5 +1,8 @@
 # PC Cleaner
 
+[![Download Self-Contained](https://img.shields.io/badge/Download-Self--Contained%20(.exe)-blue?style=for-the-badge&logo=windows)](https://github.com/dmacOS529/PCCleaner/releases/latest/download/PCCleaner-SelfContained.exe)
+[![Download Lightweight](https://img.shields.io/badge/Download-Lightweight%20(.zip)-green?style=for-the-badge&logo=windows)](https://github.com/dmacOS529/PCCleaner/releases/latest/download/PCCleaner-Lightweight.zip)
+
 A lightweight Windows desktop application for cleaning browser data and freeing disk space. Built as a simple, no-bloat alternative to other tools - focused on doing a few things well.
 
 ## Screenshot
@@ -171,6 +174,13 @@ src/PCCleaner/
   Themes/
     Styles.xaml                   — Dark flat theme (Catppuccin-inspired colour palette)
 ```
+
+## Download
+
+| Version | Size | .NET Required? |
+|---------|------|----------------|
+| [PCCleaner-SelfContained.exe](https://github.com/dmacOS529/PCCleaner/releases/latest/download/PCCleaner-SelfContained.exe) | ~155 MB | No — runs on any 64-bit Windows |
+| [PCCleaner-Lightweight.zip](https://github.com/dmacOS529/PCCleaner/releases/latest/download/PCCleaner-Lightweight.zip) | ~1 MB | Yes — requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
 
 ## Building & Running
 

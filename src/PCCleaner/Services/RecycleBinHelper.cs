@@ -4,7 +4,7 @@ namespace PCCleaner.Services;
 
 public static class RecycleBinHelper
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    [StructLayout(LayoutKind.Sequential)]
     private struct SHQUERYRBINFO
     {
         public uint cbSize;
